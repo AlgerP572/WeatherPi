@@ -6,3 +6,4 @@ writing Weewx 4.0 is still under development and can be found here:
 
 http://weewx.com/downloads/development_versions/
 
+![WeatherPi](media/Screen.png)
