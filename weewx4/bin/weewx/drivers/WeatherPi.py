@@ -106,10 +106,18 @@ class WeatherPi(weewx.drivers.AbstractDevice):
                       each observation is intialized with the device responsible
                       for making the measrement.
         [Optional. Default is not defined.]
+
+        wind_direction_offset_angle:  Use this number to calibrate the wind vane measurements.
+        For example for my weather station it is most practical to have the North face of 
+        the wind vane to actually be pointing to the west.  I can now simply subtract 90 
+        degrees from the vane measurements so that the measurement indicates west.
+        [Optional. Default is 0 in which case the wind vane is truly pointing north when it
+        measures north.]
         """
 
         self.loop_interval = float(stn_dict.get('loop_interval', 10.0))
         self.time_between_observations = float(stn_dict.get('time_between_observations', 0.1))
+        self.wind_direction_offset_angle = float(stn_dict.get('wind_direction_offset_angle', 0.0))
         if 'start_time' in stn_dict and stn_dict['start_time'] is not None:
             # A start time has been specified. We are not in real time mode.
             self.real_time = False
@@ -168,7 +176,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             'barometer'  : bmp280BarometerSensor(self.bmp280),
             'pressure'   : noneSensor(),
             'windSpeed'  : sen08942Anemometer(26),
-            'windDir'    : sen08942VaneSensor(self.chan),
+            'windDir'    : sen08942VaneSensor(self.chan, self.wind_direction_offset_angle),
             'windGust'   : sen08942GustAnemometer(26),
             'windGustDir': noneSensor(),
             'outHumidity': am2320HumiditySensor(self.am2315),
@@ -435,8 +443,9 @@ class sen08942VaneSensor(object):
     position.  The values below will be close but may need to be updated for
     your particular wind vane.""" 
 
-    def __init__(self, sensor):
+    def __init__(self, sensor, wind_direction_offset_angle):
         self._sensor = sensor
+        self.wind_direction_offset_angle = wind_direction_offset_angle
 
     def value_at(self, time_ts):
         degrees = None
@@ -447,7 +456,7 @@ class sen08942VaneSensor(object):
         # should be for 3.3 and 5 volt reference sources.
         if 1.3 <= voltage <= 1.5:
             degrees = 0.0        
-        if 3.0 <= voltage <= 3.2:
+        if 3.0 <= voltage <= 3.3:
             degrees = 45.0
         if 4.0 <= voltage <= 4.1:
             degrees = 90.0
@@ -461,8 +470,14 @@ class sen08942VaneSensor(object):
             degrees = 270.0
         if 0.8 <= voltage <= 1.0:
             degrees = 315.0
+        if degrees == None :
+            calibratedResult = None
         
-        return degrees 
+        calibratedResult = None
+        if degrees != None :
+            calibratedResult = 360.0 + degrees + self.wind_direction_offset_angle
+            calibratedResult = calibratedResult % 360
+        return calibratedResult 
 
 class noneSensor(object):
     """This class is useful for provideing a None for any obsrvation that
