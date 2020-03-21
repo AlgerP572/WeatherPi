@@ -58,12 +58,12 @@ BMP280
 ```
 
 ## WiFi Signal Strength
-'''
+```
 Raspberry Pi 3B
 Raspberry Pi 4B
 
 (just uses iwconfig so in theory any Pi model with WiFi should work.)
-'''
+```
 
 # Installation
 
