@@ -16,6 +16,8 @@ from __future__ import print_function
 import math
 import random
 import time
+import subprocess
+import re
 
 import weedb
 import weewx.drivers
@@ -134,7 +136,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             self.real_time = True
             start_ts = self.the_time = time.time()
 
-        # default to simulator mode
+        # default to polled mode
         self.mode = stn_dict.get('mode', 'polled')
         
         # Create ADA fruit circuit python devices.
@@ -150,8 +152,14 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         # https://learn.adafruit.com/am2315-encased-i2c-temperature-humidity-sensor/python-circuitpython
         # https://learn.adafruit.com/adafruit-bmp280-barometric-pressure-plus-temperature-sensor-breakout/circuitpython-test
         # https://learn.adafruit.com/adafruit-4-channel-adc-breakouts/python-circuitpython
-        self.i2c = busio.I2C(board.SCL, board.SDA)        
-        self.am2315 = adafruit_am2320.AM2320(self.i2c)        
+        self.i2c = busio.I2C(board.SCL, board.SDA) 
+
+        from adafruit_am2320 import AM2320DeviceNotFound
+        try:       
+            self.am2315 = adafruit_am2320.AM2320(self.i2c) 
+        except AM2320DeviceNotFound :
+            self.am2315 = None
+
         self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
         self.adc = ADS.ADS1115(self.i2c)
         self.chan = AnalogIn(self.adc, ADS.P0)
@@ -170,7 +178,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         #  are not tracking (or alternatively do not include)
         # those values in the list.
         self.observations = {
-            'outTemp'    : am2320TemperatureSensor(self.am2315),
+            'outTemp'    : noneSensor() if self.am2315 == None else am2320TemperatureSensor(self.am2315),
             'inTemp'     : bmp280TemperatureSensor(self.bmp280),
             'altimeter'  : bmp280AltitudeSensor(self.bmp280),
             'barometer'  : bmp280BarometerSensor(self.bmp280),
@@ -179,7 +187,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             'windDir'    : sen08942VaneSensor(self.chan, self.wind_direction_offset_angle),
             'windGust'   : sen08942GustAnemometer(26),
             'windGustDir': noneSensor(),
-            'outHumidity': am2320HumiditySensor(self.am2315),
+            'outHumidity': noneSensor() if self.am2315 == None else am2320HumiditySensor(self.am2315),
             'inHumidity' : noneSensor(),
             'radiation'  : noneSensor(),
             'UV'         : noneSensor(),
@@ -487,22 +495,18 @@ class noneSensor(object):
         return None
 
 class SignalStrength(object):
-    """TODO: quey Raspberry Pi WiFi signal strength"""
-
-    def __init__(self, minval=0.0, maxval=100.0):
-        """Initialize a signal strength simulator."""
-        self.minval = minval
-        self.maxval = maxval
-        self.max_variance = 0.1 * (self.maxval - self.minval)
-        self.value = self.minval + random.random() * (self.maxval - self.minval)
+    """Query Raspberry Pi WiFi signal strength"""      
 
     def value_at(self, time_ts):
-        newval = self.value + self.max_variance * random.random() * random.randint(-1, 1)
-        newval = max(self.minval, newval)
-        newval = min(self.maxval, newval)
-        self.value = newval
-        return self.value
+        proc = subprocess.Popen(["iwconfig", "wlan0"],stdout=subprocess.PIPE, universal_newlines=True)
+        out, err = proc.communicate()
 
+        m = re.search("Link Quality=(?P<strength>[0-9][0-9])/(?P<max_strength>[0-9][0-9])", out)
+
+        strength = int(m.group('strength'))
+        max_strength = int(m.group('max_strength'))
+        resultPerCent = strength / max_strength * 100
+        return resultPerCent
 
 def confeditor_loader():
     return WeatherPiConfEditor()

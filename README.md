@@ -1,15 +1,22 @@
 # WeatherPi
-A Weewx 4.0 python 3.0 driver for using a Raspberry Pi 4B as a weather station.
+A Weewx 4.x python 3.x driver for using a Raspberry Pi 4B as a weather station.
 
 This python driver is designed for use with the Weewx 4.0 weather station software.
-As of this writing Weewx 4.0 is still under development and can be found here:
+As of this writing Weewx 4.x is still under development and can be found here:
 
 http://weewx.com/downloads/development_versions/
 
-Currently this driver is known to work with Weewx 4.0 versions:
+Currently this driver is known to work with Weewx 4.x versions:
 4.0.0b14, 4.0.0b16
 
 ![WeatherPi](media/Screen.png)
+
+## Contents
+- [Supported Hardware](#supported-hardware)
+- [Installation](#installation)
+- [Required Libraies](#required-libraies)
+- [The Hardware](#the-hardware)
+- [Compiling Weewx](#compiling-weewx)
 
 # Supported Hardware
 The following list describes the hardware that this driver currently supports:
@@ -33,25 +40,36 @@ BMP280
 
 ## Anemometer
 ```
-sen08942 (Spark fun weather station)
-sen15901 (Spark fun weather station)
+sen08942 (Sparkfun weather station)
+sen15901 (Sparkfun weather station)
+0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Wind Vanes
 ```
-sen08942 (Spark fun weather station)
-sen15901 (Spark fun weather station)
+sen08942 (Sparkfun weather station)
+sen15901 (Sparkfun weather station)
+0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Rain Guage
 ```
-sen08942 (Spark fun weather station)
-sen15901 (Spark fun weather station)
+sen08942 (Sparkfun weather station)
+sen15901 (Sparkfun weather station)
+0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Altimeter
 ```
 BMP280
+```
+
+## WiFi Signal Strength
+```
+Raspberry Pi 3B
+Raspberry Pi 4B
+
+(just uses iwconfig so in theory any Pi model with WiFi should work.)
 ```
 
 # Installation
@@ -97,3 +115,40 @@ If you have issues installing this driver via the weewx script it can alternativ
 This driver requires the ADA Fruit Circuit python libraries.  Installation instructions can be readily found on the Web with a google search for ADAfruit circuit python BMP280 etc.
 
 It also requires the general purpose IO libray by Ben Croston.
+
+# The Hardware
+
+![WeatherPi](media/IMG_7013.png)
+
+![WeatherPi](media/IMG_7015.png)
+
+![WeatherPi](media/IMG_7017.png)
+
+# Compiling Weewx
+
+Compiling Weewx is very straightforwad with visual studio code which is free.  It is also lightweight enough to run happily directly on the Raspberry Pi. Steps are:
+
+1) Download and install VS code for linux
+2) Install the python add on extension
+3) Open the code.
+4) If you want to use integrated debugging you will need to create a custom .json file.  Here is an example:
+```
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [       
+    
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/weewxd",
+            "args": ["weewx.conf"],
+            "console": "integratedTerminal"
+        }
+    ]
+}
+```
+![WeatherPi](media/VSCodeWeewx.png)
