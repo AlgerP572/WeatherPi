@@ -1,12 +1,12 @@
 # WeatherPi
-A Weewx 4.0 python 3.0 driver for using a Raspberry Pi 4B as a weather station.
+A Weewx 4.x python 3.x driver for using a Raspberry Pi 4B as a weather station.
 
 This python driver is designed for use with the Weewx 4.0 weather station software.
-As of this writing Weewx 4.0 is still under development and can be found here:
+As of this writing Weewx 4.x is still under development and can be found here:
 
 http://weewx.com/downloads/development_versions/
 
-Currently this driver is known to work with Weewx 4.0 versions:
+Currently this driver is known to work with Weewx 4.x versions:
 4.0.0b14, 4.0.0b16
 
 ![WeatherPi](media/Screen.png)
