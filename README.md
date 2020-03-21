@@ -151,3 +151,4 @@ Compiling Weewx is very straightforwad with visual studio code which is free.  I
     ]
 }
 ```
+![WeatherPi](media/VSCodeWeewx.png)
