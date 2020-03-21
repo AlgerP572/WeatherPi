@@ -116,3 +116,31 @@ It also requires the general purpose IO libray by Ben Croston.
 ![WeatherPi](media/IMG_7015.png)
 
 ![WeatherPi](media/IMG_7017.png)
+
+# Compiling Weewx
+
+Compiling Weewx is very straightforwad with visual studio code which is free.  It is also lightweight enough to run happily directly on the Raspberry Pi. Steps are:
+
+1) Download and install VS code for linux
+2) Install the python add on extension
+3) Open the code.
+4) If you want to use integrated debugging you will need to create a custom .json file.  Here is an example:
+```
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [       
+    
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/weewxd",
+            "args": ["weewx.conf"],
+            "console": "integratedTerminal"
+        }
+    ]
+}
+```
