@@ -11,6 +11,13 @@ Currently this driver is known to work with Weewx 4.x versions:
 
 ![WeatherPi](media/Screen.png)
 
+## Contents
+- [Supported Hardware](#supported-hardware)
+- [Installation](#installation)
+- [Required Libraies](#required-libraies)
+- [The Hardware](#the-hardware)
+- [Compiling Weewx](#compiling-weewx)
+
 # Supported Hardware
 The following list describes the hardware that this driver currently supports:
 
