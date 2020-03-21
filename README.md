@@ -96,4 +96,4 @@ If you have issues installing this driver via the weewx script it can alternativ
 
 This driver requires the ADA Fruit Circuit python libraries.  Installation instructions can be readily found on the Web with a google search for ADAfruit circuit python BMP280 etc.
 
-It also requires the general pupose IO libray by Ben Croston.
+It also requires the general purpose IO libray by Ben Croston.
