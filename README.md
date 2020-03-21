@@ -97,3 +97,11 @@ If you have issues installing this driver via the weewx script it can alternativ
 This driver requires the ADA Fruit Circuit python libraries.  Installation instructions can be readily found on the Web with a google search for ADAfruit circuit python BMP280 etc.
 
 It also requires the general purpose IO libray by Ben Croston.
+
+# The Hardware
+
+![WeatherPi](media/IMG_7013.png)
+
+![WeatherPi](media/IMG_7015.png)
+
+![WeatherPi](media/IMG_7017.png)
