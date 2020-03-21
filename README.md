@@ -35,18 +35,21 @@ BMP280
 ```
 sen08942 (Spark fun weather station)
 sen15901 (Spark fun weather station)
+0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Wind Vanes
 ```
 sen08942 (Spark fun weather station)
 sen15901 (Spark fun weather station)
+0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Rain Guage
 ```
 sen08942 (Spark fun weather station)
 sen15901 (Spark fun weather station)
+0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Altimeter
