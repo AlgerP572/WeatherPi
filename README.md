@@ -33,22 +33,22 @@ BMP280
 
 ## Anemometer
 ```
-sen08942 (Spark fun weather station)
-sen15901 (Spark fun weather station)
+sen08942 (Sparkfun weather station)
+sen15901 (Sparkfun weather station)
 0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Wind Vanes
 ```
-sen08942 (Spark fun weather station)
-sen15901 (Spark fun weather station)
+sen08942 (Sparkfun weather station)
+sen15901 (Sparkfun weather station)
 0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
 ## Rain Guage
 ```
-sen08942 (Spark fun weather station)
-sen15901 (Spark fun weather station)
+sen08942 (Sparkfun weather station)
+sen15901 (Sparkfun weather station)
 0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
 ```
 
@@ -56,6 +56,14 @@ sen15901 (Spark fun weather station)
 ```
 BMP280
 ```
+
+## WiFi Signal Strength
+'''
+Raspberry Pi 3B
+Raspberry Pi 4B
+
+(just uses iwconfig so in theory any Pi model with WiFi should work.)
+'''
 
 # Installation
 
