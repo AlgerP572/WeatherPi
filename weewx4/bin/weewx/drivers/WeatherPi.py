@@ -430,7 +430,7 @@ class sen08942RainSensor(object):
     def rainEvent(arg): 
         currentRainSample = time.time()
         debounce = currentRainSample - sen08942RainSensor._lastRainSample
-        if debounce > 2.0 :
+        if debounce > 0.5 :
             sen08942RainSensor._rainTick += 1
             sen08942RainSensor._lastRainSample = currentRainSample
 
