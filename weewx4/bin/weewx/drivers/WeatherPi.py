@@ -367,7 +367,7 @@ class sen08942Anemometer(object):
     def windEvent(arg): 
         currentWindSample = time.time()
         debounce = currentWindSample - sen08942Anemometer._lastWindSample
-        if debounce > 0.02 :
+        if debounce > 0.08 :
             sen08942Anemometer._windTimes.append(currentWindSample)
             sen08942Anemometer._lastWindSample = currentWindSample
 
@@ -498,14 +498,20 @@ class SignalStrength(object):
     """Query Raspberry Pi WiFi signal strength"""      
 
     def value_at(self, time_ts):
-        proc = subprocess.Popen(["iwconfig", "wlan0"],stdout=subprocess.PIPE, universal_newlines=True)
-        out, err = proc.communicate()
+        resultPerCent = None
+        try:
+            proc = subprocess.Popen(["iwconfig", "wlan0"],stdout=subprocess.PIPE, universal_newlines=True)
+            out, err = proc.communicate()
 
-        m = re.search("Link Quality=(?P<strength>[0-9][0-9])/(?P<max_strength>[0-9][0-9])", out)
+            m = re.search("Link Quality=(?P<strength>[0-9][0-9])/(?P<max_strength>[0-9][0-9])", out)
 
-        strength = int(m.group('strength'))
-        max_strength = int(m.group('max_strength'))
-        resultPerCent = strength / max_strength * 100
+            strength = int(m.group('strength'))
+            max_strength = int(m.group('max_strength'))
+            resultPerCent = strength / max_strength * 100
+        except:
+
+            # failed signal strength should not cause program stop.
+            pass
         return resultPerCent
 
 def confeditor_loader():
