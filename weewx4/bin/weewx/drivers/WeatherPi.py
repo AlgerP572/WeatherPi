@@ -17,11 +17,13 @@ import math
 import random
 import time
 import subprocess
+import logging
 import re
 
 import weedb
 import weewx.drivers
 import weeutil.weeutil
+import weeutil.logger
 
 # raspberry pi io pin driver
 import RPi.GPIO as GPIO
@@ -40,6 +42,8 @@ from adafruit_ads1x15.analog_in import AnalogIn
 
 DRIVER_NAME = 'WeatherPi'
 DRIVER_VERSION = "1.0"
+
+log = logging.getLogger(__name__)
 
 def loader(config_dict, engine):
 
@@ -158,11 +162,16 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:       
             self.am2315 = adafruit_am2320.AM2320(self.i2c) 
         except AM2320DeviceNotFound :
+            log.error("AM2320 not found continue as None")            
             self.am2315 = None
 
-        self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
-        self.adc = ADS.ADS1115(self.i2c)
-        self.chan = AnalogIn(self.adc, ADS.P0)
+        try:
+            self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
+            self.adc = ADS.ADS1115(self.i2c)
+            self.chan = AnalogIn(self.adc, ADS.P0)
+        except:
+            log.error("BMP280 not found on I2C bus. Try a reboot of the Pi.")
+            raise
 
         # Using the RPi.GPIO library for pin access in python gere
         # Set GPIO pins to use BCM pin numbers.
