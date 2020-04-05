@@ -32,7 +32,7 @@ import RPi.GPIO as GPIO
 # between multiple different I2C devices so this object is
 # created here. Using circuit python version in order to
 # be compatible with Python3. It also seems more stable on
-# a ReapberryPi 4.
+# a RaspberryPi 4.
 import board
 import busio
 import adafruit_am2320
@@ -276,7 +276,8 @@ class am2320TemperatureSensor(object):
         from adafruit_am2320 import AM2320ReadError
         try:
             temperature = self._sensor.temperature
-        except AM2320ReadError:
+        except (AM2320ReadError, OSError) as e:
+            log.error("Could not read AM2320 sensor %s", e)
             pass
         return temperature 
 
@@ -296,7 +297,8 @@ class am2320HumiditySensor(object):
         from adafruit_am2320 import AM2320ReadError
         try:
             humidity = self._sensor.relative_humidity
-        except AM2320ReadError:
+        except (AM2320ReadError, OSError) as e:
+            log.error("Could not read AM2320 sensor %s", e)
             pass
         return humidity  
 
@@ -313,7 +315,12 @@ class bmp280TemperatureSensor(object):
         self._sensor = sensor
 
     def value_at(self, time_ts):
-        temperature = self._sensor.temperature
+        temperature = None
+        try:
+            temperature = self._sensor.temperature
+        except OSError as e:
+            log.error("Could not read bmp280 sensor %s", e)
+            pass
         return temperature
         
 class bmp280AltitudeSensor(object):
@@ -329,7 +336,12 @@ class bmp280AltitudeSensor(object):
         self._sensor = sensor
 
     def value_at(self, time_ts):
-        altitude = self._sensor.altitude
+        altitude = None
+        try:
+            altitude = self._sensor.altitude
+        except OSError as e:
+            log.error("Could not read bmp280 sensor %s", e)
+            pass
         return altitude
 
 class bmp280BarometerSensor(object):
@@ -345,7 +357,12 @@ class bmp280BarometerSensor(object):
         self._sensor = sensor
 
     def value_at(self, time_ts):
-        pressure = self._sensor.pressure
+        pressure = None
+        try:
+            pressure = self._sensor.pressure
+        except OSError as e:
+            log.error("Could not read bmp280 sensor %s", e)
+            pass
         return pressure
 
 class sen08942Anemometer(object):
@@ -376,7 +393,7 @@ class sen08942Anemometer(object):
     def windEvent(arg): 
         currentWindSample = time.time()
         debounce = currentWindSample - sen08942Anemometer._lastWindSample
-        if debounce > 0.08 :
+        if debounce > 0.04 :
             sen08942Anemometer._windTimes.append(currentWindSample)
             sen08942Anemometer._lastWindSample = currentWindSample
 
