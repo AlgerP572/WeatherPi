@@ -13,9 +13,14 @@ Weewx version | Branch or Label | Notes
 4.0.0b14 | Weewxb14
 4.0.0b16 | Weewxb16
 4.0.0b17 | Weewxb17 (master) | Some users may also require Weewx changset d077a8b
-4.0.0b18 | Weewxb18 (master) | This version includes the above changset.
+4.0.0b18 | Weewxb18 (master) | Weewxb18 includes the above changset (d077a8b).
+
+---
+**NOTE**
 
 Special thanks to the Weewx team for fast turn around time on an issue encountered by some users when attempting to use the new console logging mechanism. Details are on github. [issue 519](https://github.com/weewx/weewx/issues/519)
+
+---
 
 ![WeatherPi](media/Screen.png)
 
