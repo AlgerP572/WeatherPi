@@ -125,7 +125,7 @@ If you have issues installing this driver via the weewx script it can alternativ
 
 # Prerequisites
 
-Update your raspberry pi and python
+## Update your raspberry pi and python
 
 ```
 sudo apt-get update
@@ -139,7 +139,7 @@ If above doesn't work try
 sudo apt-get install python3-pip
 ```
 
-Enable I2C and SPI
+## Enable I2C and SPI
 The SPI bus can be enabled via the Raspberry Pi configuration under preferences from the Rasberry button on the desktop. Follow the instructions and reboot as required.
 Once you're done with both and have rebooted, verify you have the I2C and SPI devices with the command:
 ```
@@ -151,7 +151,7 @@ Response:
 ```
 ![WeatherPi](media/Update.png)
 
-Install ADA Fruit Circuit Python libraries
+## Install ADA Fruit Circuit Python libraries
 
 This driver requires the ADA Fruit Circuit python libraries. It also requires the general purpose IO libray by Ben Croston.
 
