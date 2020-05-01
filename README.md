@@ -138,6 +138,7 @@ If above doesn't work try
 
 sudo apt-get install python3-pip
 ```
+
 Enable I2C and SPI
 The SPI bus can be enabled via the Raspberry Pi configuration under preferences from the Rasberry button on the desktop. Follow the instructions and reboot as required.
 Once you're done with both and have rebooted, verify you have the I2C and SPI devices with the command:
@@ -150,9 +151,22 @@ Response:
 ```
 ![WeatherPi](media/Update.png)
 
-This driver requires the ADA Fruit Circuit python libraries.  Installation instructions can be readily found on the Web with a google search for ADAfruit circuit python BMP280 etc.
+Install ADA Fruit Circuit Python libraries
 
-It also requires the general purpose IO libray by Ben Croston.
+This driver requires the ADA Fruit Circuit python libraries. It also requires the general purpose IO libray by Ben Croston.
+
+Notes from ADA Fruit: The default python on your computer may not be python 3. Python 2 is officially discontinued and all our
+libraries are Python 3 only. We'll be using python3 and pip3 in our commands, use those versions of python and pip to make sure
+you're using 3 and not 2.
+
+Weewx 4.x is Python 3 compatible
+
+```
+pip3 install RPI.GPIO
+pip3 install adafruit-blinka
+```
+
+![WeatherPi](media/CircuitPython.png)
 
 # The Hardware
 
