@@ -138,6 +138,17 @@ If above doesn't work try
 
 sudo apt-get install python3-pip
 ```
+Enable I2C and SPI
+The SPI bus can be enabled via the Raspberry Pi configuration under preferences from the Rasberry button on the desktop. Follow the instructions and reboot as required.
+Once you're done with both and have rebooted, verify you have the I2C and SPI devices with the command:
+```
+Command:
+ls /dev/i2c* /dev/spi*
+
+Response:
+/dev/i2c-1 /dev/spidev0.0 /dev/spidev0.1
+```
+![WeatherPi](media/Update.png)
 
 This driver requires the ADA Fruit Circuit python libraries.  Installation instructions can be readily found on the Web with a google search for ADAfruit circuit python BMP280 etc.
 
