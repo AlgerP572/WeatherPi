@@ -27,7 +27,7 @@ Special thanks to the Weewx team for fast turn around time on an issue encounter
 ## Contents
 - [Supported Hardware](#supported-hardware)
 - [Installation](#installation)
-- [Required Libraies](#required-libraies)
+- [Prerequisites](#prerequisites)
 - [The Hardware](#the-hardware)
 - [Compiling Weewx](#compiling-weewx)
 
@@ -123,7 +123,21 @@ If you have issues installing this driver via the weewx script it can alternativ
           ...
 ```
 
-# Required Libraies
+# Prerequisites
+
+Update your raspberry pi and python
+
+```
+sudo apt-get update
+
+sudo apt-get upgrade
+
+sudo pip3 install --upgrade setuptools
+
+If above doesn't work try
+
+sudo apt-get install python3-pip
+```
 
 This driver requires the ADA Fruit Circuit python libraries.  Installation instructions can be readily found on the Web with a google search for ADAfruit circuit python BMP280 etc.
 
