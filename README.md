@@ -168,6 +168,17 @@ pip3 install adafruit-blinka
 
 ![WeatherPi](media/CircuitPython.png)
 
+## Install hardware specfic libraries
+
+```
+
+pip3 install adafruit-circuitpython-sht31d
+pip3 install adafruit-circuitpython-am2320
+pip3 install adafruit-circuitpython-bmp280
+pip3 install adafruit-circuitpython-ads1x15
+
+```
+
 # The Hardware
 
 ![WeatherPi](media/IMG_7013.png)
