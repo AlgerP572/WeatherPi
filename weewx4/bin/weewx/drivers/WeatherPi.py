@@ -13,6 +13,7 @@
 from __future__ import with_statement
 from __future__ import absolute_import
 from __future__ import print_function
+from enum import Enum
 import math
 import random
 import time
@@ -37,6 +38,7 @@ import board
 import busio
 import adafruit_am2320
 import adafruit_bmp280
+import adafruit_sht31d
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
@@ -44,6 +46,37 @@ DRIVER_NAME = 'WeatherPi'
 DRIVER_VERSION = "1.0"
 
 log = logging.getLogger(__name__)
+
+class TemperatureSensors(Enum):    
+    BMP280 = 1
+    AM2315 = 2
+    BSHT30A = 3
+
+# The following emumertations define what hardware is supported
+# a string with the same name should appear next the entry in the
+#  config file.
+class HumiditySensors(Enum):    
+    AM2315 = 2
+    BSHT30A = 3
+
+class AltitudeSensors(Enum):
+    BMP280 = 1
+
+class BarometerSensors(Enum):
+    BMP280 = 1
+
+class WindSpeedSensors(Enum):
+    SparkFun08942 = 1
+
+class WindDirectionSensors(Enum):
+    SparkFun08942 = 1
+
+class WindGustSensors(Enum):
+    SparkFun08942 = 1
+
+class RainSensors(Enum):
+    SparkFun08942 = 1
+
 
 def loader(config_dict, engine):
 
@@ -106,11 +139,12 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             'generator': Emit packets as fast as possible (useful for testing) but could be too fast for real hardwre...
         [Required. Default is polled.]
 
-        observations: Comma-separated list of observations that should be
-                      generated.  If nothing is specified, then all
-                      observations will be generated. Whe defining the list
-                      each observation is intialized with the device responsible
-                      for making the measrement.
+        observations: Comma-separated  device list of observations that should be
+                      generated.  Each entry is a the name of an observation
+                      followed vy a colon followed by the name of the hardware
+                      device to use for the observation
+                      i.e.  "outTemp: None, inTemp: BSHT30A"
+
         [Optional. Default is not defined.]
 
         wind_direction_offset_angle:  Use this number to calibrate the wind vane measurements.
@@ -156,22 +190,14 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         # https://learn.adafruit.com/am2315-encased-i2c-temperature-humidity-sensor/python-circuitpython
         # https://learn.adafruit.com/adafruit-bmp280-barometric-pressure-plus-temperature-sensor-breakout/circuitpython-test
         # https://learn.adafruit.com/adafruit-4-channel-adc-breakouts/python-circuitpython
-        self.i2c = busio.I2C(board.SCL, board.SDA) 
+        self.i2c = busio.I2C(board.SCL, board.SDA)
 
-        from adafruit_am2320 import AM2320DeviceNotFound
-        try:       
-            self.am2315 = adafruit_am2320.AM2320(self.i2c) 
-        except AM2320DeviceNotFound :
-            log.error("AM2320 not found continue as None")            
-            self.am2315 = None
-
-        try:
-            self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
-            self.adc = ADS.ADS1115(self.i2c)
-            self.chan = AnalogIn(self.adc, ADS.P0)
-        except:
-            log.error("BMP280 not found on I2C bus. Try a reboot of the Pi.")
-            raise
+        # Init devicesa to None
+        self.BSHT30A = None
+        self.am2315 = None
+        self.bmp280 = None
+        self.adc = None
+        self.chan = None
 
         # Using the RPi.GPIO library for pin access in python gere
         # Set GPIO pins to use BCM pin numbers.
@@ -186,21 +212,24 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         # none sensor class to provide None for values you
         #  are not tracking (or alternatively do not include)
         # those values in the list.
+        deviceList = dict(device.split(":") for device in stn_dict['observations'])
+            
+
         self.observations = {
-            'outTemp'    : noneSensor() if self.am2315 == None else am2320TemperatureSensor(self.am2315),
-            'inTemp'     : bmp280TemperatureSensor(self.bmp280),
-            'altimeter'  : bmp280AltitudeSensor(self.bmp280),
-            'barometer'  : bmp280BarometerSensor(self.bmp280),
+            'outTemp'    : self.BuildTemperatureSensor(deviceList.get('outTemp', "None").strip(), self.i2c),
+            'inTemp'     : self.BuildTemperatureSensor(deviceList.get('inTemp', "None").strip(), self.i2c),
+            'altimeter'  : self.BuildAltitudeSensor(deviceList.get('altimeter', "None").strip(), self.i2c),
+            'barometer'  : self.BuildBarometerSensor(deviceList.get('barometer', "None").strip(), self.i2c),
             'pressure'   : noneSensor(),
-            'windSpeed'  : sen08942Anemometer(26),
-            'windDir'    : sen08942VaneSensor(self.chan, self.wind_direction_offset_angle),
-            'windGust'   : sen08942GustAnemometer(26),
+            'windSpeed'  : self.BuildWindSpeedSensor(deviceList.get('windSpeed', "None").strip(), 26),
+            'windDir'    : self.BuildWindDirectionSensor(deviceList.get('windDir', "None").strip(), self.wind_direction_offset_angle), 
+            'windGust'   : self.BuildWindGustSensor(deviceList.get('windGust', "None").strip(), 26),
             'windGustDir': noneSensor(),
-            'outHumidity': noneSensor() if self.am2315 == None else am2320HumiditySensor(self.am2315),
-            'inHumidity' : noneSensor(),
+            'outHumidity': self.BuildHumiditySensor(deviceList.get('outHumidity', "None").strip(), self.i2c),
+            'inHumidity' : self.BuildHumiditySensor(deviceList.get('inHumidity', "None").strip(), self.i2c),
             'radiation'  : noneSensor(),
             'UV'         : noneSensor(),
-            'rain'       : sen08942RainSensor(12),
+            'rain'       : self.BuildRainSensor(deviceList.get('rain', "None").strip(), 12), 
             'txBatteryStatus': noneSensor(),
             'windBatteryStatus': noneSensor(),
             'rainBatteryStatus': noneSensor(),
@@ -210,14 +239,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             'heatingVoltage': noneSensor(),
             'supplyVoltage': noneSensor(),
             'referenceVoltage': noneSensor(),
-            'rxCheckPercent': SignalStrength()}
-
-        # calculate only the specified observations, or all if none specified
-        if 'observations' in stn_dict and stn_dict['observations'] is not None:
-            desired = [x.strip() for x in stn_dict['observations'].split(',')]
-            for obs in self.observations:
-                if obs not in desired:
-                    del self.observations[obs]
+            'rxCheckPercent': SignalStrength()
+            }
 
     def genLoopPackets(self):
 
@@ -255,6 +278,278 @@ class WeatherPi(weewx.drivers.AbstractDevice):
 
     def getTime(self):
         return self.the_time
+
+    def BuildBSHT3xATemperatureSensor(self, sensorType, i2c):
+        try:       
+            if self.BSHT30A == None :
+                self.BSHT30A = adafruit_sht31d.SHT31D(i2c)
+            sensor = bsht30TemperatureSensor(self.BSHT30A)
+        # ealier version of circuit python uses this,
+        #except AM2320DeviceNotFound :
+        except ValueError:
+            log.error(sensorType + " not found continue as None")            
+            self.am2315 = None
+            sensor = None
+        return sensor
+
+    def BuildAM23xxTemperatureSensor(self, sensorType, i2c):
+        # ealier version of circuit python uses this,
+        # from adafruit_am2320 import AM2320DeviceNotFound
+        try: 
+            if self.am2315 == None :
+                self.am2315 = adafruit_am2320.AM2320(i2c) 
+            sensor = am2320TemperatureSensor(self.am2315)
+        # ealier version of circuit python uses this,
+        #except AM2320DeviceNotFound :
+        except ValueError:
+            log.error(sensorType + " not found continue as None")            
+            self.am2315 = None
+            sensor = None
+        return sensor
+
+    def BuildBMPx80TemperatureSensor(self, sensorType, i2c):
+        try:
+            if self.bmp280 == None :
+                self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
+            sensor = bmp280TemperatureSensor(self.bmp280)
+        except ValueError:
+            log.error(sensorType + " sensor not found")  
+            self.bmp280 = None
+            sensor = None
+        return sensor
+
+    def BuildTemperatureSensor(self, sensorType, i2c):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = TemperatureSensors[sensorType]
+        except KeyError:
+            log.error("Invalid temperature sensor:", sensorType)      
+            return None
+
+        switcher = {
+            TemperatureSensors.BSHT30A: self.BuildBSHT3xATemperatureSensor, 
+            TemperatureSensors.AM2315: self.BuildAM23xxTemperatureSensor,
+            TemperatureSensors.BMP280: self.BuildBMPx80TemperatureSensor                      
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, i2c)
+        return sensor
+
+    def BuildBSHT3xAHumiditySensor(self, sensorType, i2c):
+        try: 
+            if self.BSHT30A == None :
+                self.BSHT30A = adafruit_sht31d.SHT31D(i2c) 
+            sensor = bsht30HumiditySensor(self.BSHT30A)
+        # ealier version of circuit python uses this,
+        #except AM2320DeviceNotFound :
+        except ValueError:
+            log.error(sensorType + " not found continue as None")            
+            self.am2315 = None
+            sensor = None
+        return sensor
+
+    def BuildAM23xxHumiditySensor(self, sensorType, i2c):
+        # ealier version of circuit python uses this,
+        # from adafruit_am2320 import AM2320DeviceNotFound
+        try: 
+            if self.am2315 == None :      
+                self.am2315 = adafruit_am2320.AM2320(i2c) 
+            sensor = am2320HumiditySensor(self.am2315)
+        # ealier version of circuit python uses this,
+        #except AM2320DeviceNotFound :
+        except ValueError:
+            log.error(sensorType + " not found continue as None")            
+            self.am2315 = None
+            sensor = None
+        return sensor    
+
+    def BuildHumiditySensor(self, sensorType, i2c):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = HumiditySensors[sensorType]
+        except KeyError:
+            log.error("Invalid temperature sensor:", sensorType)      
+            return None
+
+        switcher = {
+            HumiditySensors.BSHT30A: self.BuildBSHT3xAHumiditySensor, 
+            HumiditySensors.AM2315: self.BuildAM23xxHumiditySensor                      
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, i2c)
+        return sensor
+
+    def BuildBMP280AltitdueSensor(self, sensorType, i2c):
+        try:
+            if self.bmp280 == None :
+                self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
+            sensor = bmp280AltitudeSensor(self.bmp280)
+        except ValueError:
+            log.error(sensorType + " sensor not found")  
+            self.bmp280 = None
+            sensor = None
+        return sensor
+
+
+    def BuildAltitudeSensor(self, sensorType, i2c):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = AltitudeSensors[sensorType]
+        except KeyError:
+            log.error("Invalid altitude sensor:", sensorType)      
+            return None
+
+        switcher = {
+            AltitudeSensors.BMP280: self.BuildBMP280AltitdueSensor                    
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, i2c)
+        return sensor
+    
+    def BuildBMP280BarometerSensor(self, sensorType, i2c):
+        try:
+            if self.bmp280 == None :
+                self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
+            sensor = bmp280BarometerSensor(self.bmp280)
+        except ValueError:
+            log.error(sensorType + " sensor not found")  
+            self.bmp280 = None
+            sensor = None
+        return sensor
+
+
+    def BuildBarometerSensor(self, sensorType, i2c):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = BarometerSensors[sensorType]
+        except KeyError:
+            log.error("Invalid barometer sensor:", sensorType)      
+            return None
+
+        switcher = {
+            BarometerSensors.BMP280: self.BuildBMP280BarometerSensor                    
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, i2c)
+        return sensor
+
+    def BuildSparkFun08942WindSpeedSensor(self, sensorType, ioPin):
+        try:            
+            sensor = sen08942Anemometer(ioPin)
+        except ValueError:
+            log.error(sensorType + " sensor not found") 
+            sensor = None
+        return sensor
+
+
+    def BuildWindSpeedSensor(self, sensorType, ioPin):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = WindSpeedSensors[sensorType]
+        except KeyError:
+            log.error("Invalid wind speed sensor:", sensorType)      
+            return None
+
+        switcher = {
+            WindSpeedSensors.SparkFun08942: self.BuildSparkFun08942WindSpeedSensor                    
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, ioPin)
+        return sensor
+
+     
+    def BuildSparkFun08942WindDirectionSensor(self, sensorType, offsetAngle):
+        try:
+            if self.chan == None:      
+                self.adc = ADS.ADS1115(self.i2c)
+                self.chan = AnalogIn(self.adc, ADS.P0)          
+            sensor = sen08942VaneSensor(self.chan, offsetAngle)
+        except ValueError:
+            log.error(sensorType + " sensor not found")
+            self.adc = None
+            self.chan = None 
+            sensor = None
+        return sensor
+
+
+    def BuildWindDirectionSensor(self, sensorType, ioPin):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = WindDirectionSensors[sensorType]
+        except KeyError:
+            log.error("Invalid wind direction sensor:", sensorType)      
+            return None
+
+        switcher = {
+            WindDirectionSensors.SparkFun08942: self.BuildSparkFun08942WindDirectionSensor                    
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, ioPin)
+        return sensor
+
+    def BuildSparkFun08942WindGustSensor(self, sensorType, ioPin):
+        try:            
+            sensor = sen08942GustAnemometer(26)
+        except ValueError:
+            log.error(sensorType + " sensor not found") 
+            sensor = None
+        return sensor
+
+    def BuildWindGustSensor(self, sensorType, ioPin):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = WindGustSensors[sensorType]
+        except KeyError:
+            log.error("Invalid wind speed sensor:", sensorType)      
+            return None
+
+        switcher = {
+            WindGustSensors.SparkFun08942: self.BuildSparkFun08942WindGustSensor                    
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, ioPin)
+        return sensor
+
+    def BuildSparkFun08942RainSensor(self, sensorType, ioPin):
+        try:            
+            sensor = sen08942RainSensor(ioPin)
+        except ValueError:
+            log.error(sensorType + " sensor not found") 
+            sensor = None
+        return sensor
+
+
+    def BuildRainSensor(self, sensorType, ioPin):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = RainSensors[sensorType]
+        except KeyError:
+            log.error("Invalid rain sensor:", sensorType)      
+            return None
+
+        switcher = {
+            RainSensors.SparkFun08942: self.BuildSparkFun08942RainSensor                    
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, ioPin)
+        return sensor
+
     
     @property
     def hardware_name(self):
@@ -272,11 +567,10 @@ class am2320TemperatureSensor(object):
 
     def value_at(self, time_ts):
         temperature = None
-
-        from adafruit_am2320 import AM2320ReadError
+        
         try:
             temperature = self._sensor.temperature
-        except (AM2320ReadError, OSError) as e:
+        except (ValueError, OSError) as e:
             log.error("Could not read AM2320 sensor %s", e)
             pass
         return temperature 
@@ -293,12 +587,43 @@ class am2320HumiditySensor(object):
 
     def value_at(self, time_ts):
         humidity = None
-
-        from adafruit_am2320 import AM2320ReadError
+        
         try:
             humidity = self._sensor.relative_humidity
-        except (AM2320ReadError, OSError) as e:
+        except (ValueError, OSError) as e:
             log.error("Could not read AM2320 sensor %s", e)
+            pass
+        return humidity 
+
+class bsht30TemperatureSensor(object):
+    """Read temperature from bsht30 temperature sensor."""    
+
+    def __init__(self, sensor):
+        self._sensor = sensor
+
+    def value_at(self, time_ts):
+        temperature = None
+        
+        try:
+            temperature = self._sensor.temperature
+        except OSError as e:
+            log.error("Could not read bsht30 sensor %s", e)
+            pass
+        return temperature 
+
+class bsht30HumiditySensor(object):
+    """Read temperature from bsht30 humidity sensor."""    
+
+    def __init__(self, sensor):
+        self._sensor = sensor
+
+    def value_at(self, time_ts):
+        humidity = None
+        
+        try:
+            humidity = self._sensor.relative_humidity
+        except OSError as e:
+            log.error("Could not read bsht30 sensor %s", e)
             pass
         return humidity  
 
