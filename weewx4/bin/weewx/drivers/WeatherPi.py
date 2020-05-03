@@ -325,7 +325,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = TemperatureSensors[sensorType]
         except KeyError:
-            log.error("Invalid temperature sensor:", sensorType)      
+            log.error("Invalid temperature sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -372,7 +372,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = HumiditySensors[sensorType]
         except KeyError:
-            log.error("Invalid temperature sensor:", sensorType)      
+            log.error("Invalid temperature sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -402,7 +402,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = AltitudeSensors[sensorType]
         except KeyError:
-            log.error("Invalid altitude sensor:", sensorType)      
+            log.error("Invalid altitude sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -431,7 +431,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = BarometerSensors[sensorType]
         except KeyError:
-            log.error("Invalid barometer sensor:", sensorType)      
+            log.error("Invalid barometer sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -445,7 +445,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:            
             sensor = sen08942Anemometer(ioPin)
         except ValueError:
-            log.error(sensorType + " sensor not found") 
+            log.error("%s sensor not found", sensorType) 
             sensor = None
         return sensor
 
@@ -457,7 +457,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = WindSpeedSensors[sensorType]
         except KeyError:
-            log.error("Invalid wind speed sensor:", sensorType)      
+            log.error("Invalid wind speed sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -475,7 +475,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
                 self.chan = AnalogIn(self.adc, ADS.P0)          
             sensor = sen08942VaneSensor(self.chan, offsetAngle)
         except ValueError:
-            log.error(sensorType + " sensor not found")
+            log.error("%s sensor not found", sensorType)
             self.adc = None
             self.chan = None 
             sensor = None
@@ -489,7 +489,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = WindDirectionSensors[sensorType]
         except KeyError:
-            log.error("Invalid wind direction sensor:", sensorType)      
+            log.error("Invalid wind direction sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -514,7 +514,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = WindGustSensors[sensorType]
         except KeyError:
-            log.error("Invalid wind speed sensor:", sensorType)      
+            log.error("Invalid wind speed sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -528,7 +528,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:            
             sensor = sen08942RainSensor(ioPin)
         except ValueError:
-            log.error(sensorType + " sensor not found") 
+            log.error("%s sensor not found", sensorType) 
             sensor = None
         return sensor
 
@@ -540,7 +540,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = RainSensors[sensorType]
         except KeyError:
-            log.error("Invalid rain sensor:", sensorType)      
+            log.error("Invalid rain sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -568,9 +568,10 @@ class am2320TemperatureSensor(object):
     def value_at(self, time_ts):
         temperature = None
         
+        from adafruit_am2320 import AM2320ReadError
         try:
             temperature = self._sensor.temperature
-        except (ValueError, OSError) as e:
+        except (AM2320ReadError, ValueError, OSError) as e:
             log.error("Could not read AM2320 sensor %s", e)
             pass
         return temperature 
@@ -588,9 +589,10 @@ class am2320HumiditySensor(object):
     def value_at(self, time_ts):
         humidity = None
         
+        from adafruit_am2320 import AM2320ReadError
         try:
             humidity = self._sensor.relative_humidity
-        except (ValueError, OSError) as e:
+        except (AM2320ReadError, ValueError, OSError) as e:
             log.error("Could not read AM2320 sensor %s", e)
             pass
         return humidity 
