@@ -116,6 +116,9 @@ If you have issues installing this driver via the weewx script it can alternativ
 
           # The driver to use:
           driver = weewx.drivers.WeatherPi
+
+          # Hardware  for your weather station
+          observations = outTemp: AM2315, inTemp: BMP280, inHumidity: None, altimeter: BMP280, barometer: BMP280, windSpeed: SparkFun08942, windDir: SparkFun08942, windGust: SparkFun08942, outHumidity: AM2315, rain: SparkFun08942
 ```
           
 3) Update the observations entry for weatherPi in the weewx.conf file.  This entry consists of a string containing the observation
