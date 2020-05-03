@@ -6,6 +6,9 @@ As of this writing Weewx 4.x is still under development and can be found here:
 
 http://weewx.com/downloads/development_versions/
 
+Release versions are here:
+http://weewx.com/downloads/
+
 Currently this driver is known to work with Weewx 4.x versions:
 
 Weewx version | Branch or Label | Notes
@@ -14,6 +17,7 @@ Weewx version | Branch or Label | Notes
 4.0.0b16 | Weewxb16
 4.0.0b17 | Weewxb17 (master) | Some users may also require Weewx changset d077a8b
 4.0.0b18 | Weewxb18 (master) | Weewxb18 includes the above changset (d077a8b).
+4.0.0    | (master)          | First release of Weewx 4.x requires weewx.conf update (see example)
 
 ---
 **NOTE**
@@ -38,12 +42,14 @@ The following list describes the hardware that this driver currently supports:
 ```
 BMP280
 AM2315
+BSHT30A
 ```
 
 ## Humidity Sensors
 ```
 BMP280
 AM2315
+BSHT30A
 ```
 
 ## Pressure Sensors
@@ -112,16 +118,15 @@ If you have issues installing this driver via the weewx script it can alternativ
           driver = weewx.drivers.WeatherPi
 ```
           
-3) Update the observations section to reflect.  This driver follows the design pattern of the Simulator.py driver.  As such it is easy to change the hardware used for each observation.  Just pass in a new class that defines a value_at() function. See the list of currently support hardware above.
+3) Update the observations entry for weatherPi in the weewx.conf file.  This entry consists of a string containing the observation
+that the software should monitor and poll.  Each entnty starts with the name of the weewx observation follwed by a colon followed
+by the name of the hardware the softwre should use for the polling operation.  Below is an exmple.  There are two ways to not monitor
+observations, a) specify None for that observation type or b) do not include the observation type in the list.  By default an observation
+no included uses None hardware driver. (Currently configobj and weewx only support a single line entry)
+
 ```
-      self.observations = {
-          'outTemp'    : am2320TemperatureSensor(self.am2315),
-          'inTemp'     : bmp280TemperatureSensor(self.bmp280),
-          'altimeter'  : bmp280AltitudeSensor(self.bmp280),
-          'barometer'  : bmp280BarometerSensor(self.bmp280),
-          'pressure'   : noneSensor(),
-          ...
-```
+observations = outTemp: AM2315, inTemp: BMP280, inHumidity: None, altimeter: BMP280, barometer: BMP280, windSpeed: SparkFun08942, windDir: SparkFun08942, windGust: SparkFun08942, outHumidity: AM2315, rain: SparkFun08942
+``` 
 
 # Prerequisites
 
