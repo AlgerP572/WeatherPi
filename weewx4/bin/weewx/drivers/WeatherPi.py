@@ -67,15 +67,23 @@ class BarometerSensors(Enum):
 
 class WindSpeedSensors(Enum):
     SparkFun08942 = 1
+    SparkFun15901 = 2
+    WeatherRack0015WRDSBT = 3
 
 class WindDirectionSensors(Enum):
     SparkFun08942 = 1
+    SparkFun15901 = 2
+    WeatherRack0015WRDSBT = 3
 
 class WindGustSensors(Enum):
     SparkFun08942 = 1
+    SparkFun15901 = 2
+    WeatherRack0015WRDSBT = 3
 
 class RainSensors(Enum):
     SparkFun08942 = 1
+    SparkFun15901 = 2
+    WeatherRack0015WRDSBT = 3
 
 
 def loader(config_dict, engine):
@@ -461,7 +469,9 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             return None
 
         switcher = {
-            WindSpeedSensors.SparkFun08942: self.BuildSparkFun08942WindSpeedSensor                    
+            WindSpeedSensors.SparkFun08942: self.BuildSparkFun08942WindSpeedSensor,
+            WindSpeedSensors.SparkFun15901: self.BuildSparkFun08942WindSpeedSensor,
+            WindSpeedSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindSpeedSensor
         }
         create = switcher.get(sensor)
         sensor = create(sensorType, ioPin)
@@ -493,7 +503,9 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             return None
 
         switcher = {
-            WindDirectionSensors.SparkFun08942: self.BuildSparkFun08942WindDirectionSensor                    
+            WindDirectionSensors.SparkFun08942: self.BuildSparkFun08942WindDirectionSensor,
+            WindDirectionSensors.SparkFun15901: self.BuildSparkFun08942WindDirectionSensor,
+            WindDirectionSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindDirectionSensor
         }
         create = switcher.get(sensor)
         sensor = create(sensorType, ioPin)
@@ -518,7 +530,9 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             return None
 
         switcher = {
-            WindGustSensors.SparkFun08942: self.BuildSparkFun08942WindGustSensor                    
+            WindGustSensors.SparkFun08942: self.BuildSparkFun08942WindGustSensor,
+            WindGustSensors.SparkFun15901: self.BuildSparkFun08942WindGustSensor,
+            WindGustSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindGustSensor
         }
         create = switcher.get(sensor)
         sensor = create(sensorType, ioPin)
@@ -544,7 +558,10 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             return None
 
         switcher = {
-            RainSensors.SparkFun08942: self.BuildSparkFun08942RainSensor                    
+            RainSensors.SparkFun08942: self.BuildSparkFun08942RainSensor,
+            RainSensors.SparkFun15901: self.BuildSparkFun08942RainSensor,
+            RainSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942RainSensor
+
         }
         create = switcher.get(sensor)
         sensor = create(sensorType, ioPin)
