@@ -27,7 +27,7 @@ Special thanks to the Weewx team for fast turn around time on an issue encounter
 ## Contents
 - [Supported Hardware](#supported-hardware)
 - [Installation](#installation)
-- [Required Libraies](#required-libraies)
+- [Prerequisites](#prerequisites)
 - [The Hardware](#the-hardware)
 - [Compiling Weewx](#compiling-weewx)
 
@@ -123,11 +123,61 @@ If you have issues installing this driver via the weewx script it can alternativ
           ...
 ```
 
-# Required Libraies
+# Prerequisites
 
-This driver requires the ADA Fruit Circuit python libraries.  Installation instructions can be readily found on the Web with a google search for ADAfruit circuit python BMP280 etc.
+## Update your raspberry pi and python
 
-It also requires the general purpose IO libray by Ben Croston.
+```
+sudo apt-get update
+
+sudo apt-get upgrade
+
+sudo pip3 install --upgrade setuptools
+
+If above doesn't work try
+
+sudo apt-get install python3-pip
+```
+
+## Enable I2C and SPI
+The SPI bus can be enabled via the Raspberry Pi configuration under preferences from the Rasberry button on the desktop. Follow the instructions and reboot as required.
+Once you're done with both and have rebooted, verify you have the I2C and SPI devices with the command:
+```
+Command:
+ls /dev/i2c* /dev/spi*
+
+Response:
+/dev/i2c-1 /dev/spidev0.0 /dev/spidev0.1
+```
+![WeatherPi](media/Update.png)
+
+## Install ADA Fruit Circuit Python libraries
+
+This driver requires the ADA Fruit Circuit python libraries. It also requires the general purpose IO libray by Ben Croston.
+
+Notes from ADA Fruit: The default python on your computer may not be python 3. Python 2 is officially discontinued and all our
+libraries are Python 3 only. We'll be using python3 and pip3 in our commands, use those versions of python and pip to make sure
+you're using 3 and not 2.
+
+Weewx 4.x is Python 3 compatible
+
+```
+pip3 install RPI.GPIO
+pip3 install adafruit-blinka
+```
+
+![WeatherPi](media/CircuitPython.png)
+
+## Install hardware specfic libraries
+
+```
+
+pip3 install adafruit-circuitpython-sht31d
+pip3 install adafruit-circuitpython-am2320
+pip3 install adafruit-circuitpython-bmp280
+pip3 install adafruit-circuitpython-ads1x15
+
+```
 
 # The Hardware
 
