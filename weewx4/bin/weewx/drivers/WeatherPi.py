@@ -751,11 +751,35 @@ class sen08942Anemometer(object):
             return 0.0
 
         windRate = [windTimes[i + 1] - windTimes[i] for i in range(windSamples - 1)]
-        sen08942Anemometer._windGustRate = min(windRate)
+        windRate.sort()
+        gustIndex = self.__percentile_index(windRate, 0.75)
+        sen08942Anemometer._windGustRate = windRate[gustIndex]
 
-        avgRate = sum(windRate) / len(windRate)
+        speedStartIndex = self.__percentile_index(windRate, 0.25)
+        speedEndIndex = gustIndex
+
+        speedSum = 0.0
+        if speedStartIndex == speedEndIndex :
+            speedSum = windRate[speedStartIndex]
+        else :
+            for j in range(speedStartIndex, speedEndIndex):
+                speedSum += windRate[j]   
+
+        avgRate = speedSum / (speedEndIndex - speedStartIndex + 1)
         windSpeed = (2.4 / avgRate) # 2.4 km / h = 0.667 meters / second
         return windSpeed
+
+    def __percentile_index(self, N, P):
+        """
+        Find the percentile of a list of values
+
+        @parameter N - A list of values.  N must be sorted.
+        @parameter P - A float value from 0.0 to 1.0
+
+        @return - The index where the percentile lives.
+        """
+        n = int(round(P * len(N) + 0.5))
+        return n - 1
 
 class sen08942GustAnemometer(sen08942Anemometer):
     """Perform a wind speed measurement using the sen08942 Anemometer.
