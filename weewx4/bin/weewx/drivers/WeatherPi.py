@@ -62,6 +62,8 @@ class TemperatureSensors(Enum):
 class HumiditySensors(Enum):    
     AM2315 = 2
     BSHT30A = 3
+    FT020T = 4 # switchdoc wireless weather station
+    F016TH = 5 # switchdoc wireless Thermo-Hygrometer
 
 class AltitudeSensors(Enum):
     BMP280 = 1
@@ -238,8 +240,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             'windDir'    : self.BuildWindDirectionSensor(deviceList.get('windDir', "None").strip(), self.wind_direction_offset_angle), 
             'windGust'   : self.BuildWindGustSensor(deviceList.get('windGust', "None").strip(), 26),
             'windGustDir': noneSensor(),
-            'outHumidity': self.BuildHumiditySensor(deviceList.get('outHumidity', "None").strip(), self.i2c),
-            'inHumidity' : self.BuildHumiditySensor(deviceList.get('inHumidity', "None").strip(), self.i2c),
+            'outHumidity': self.BuildHumiditySensor(deviceList.get('outHumidity', "None").strip()),
+            'inHumidity' : self.BuildHumiditySensor(deviceList.get('inHumidity', "None").strip()),
             'radiation'  : noneSensor(),
             'UV'         : noneSensor(),
             'rain'       : self.BuildRainSensor(deviceList.get('rain', "None").strip(), 12), 
@@ -338,9 +340,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
                 self.sdr.readSensors()
  
             sensor = ft020tTemperatureSensor(self.sdr)
-        except ValueError:
-            log.error(sensorType + " sensor not found")  
-            self.bmp280 = None
+        except:
+            log.error(sensorType + " sensor not found")
             sensor = None
         return sensor
 
@@ -351,9 +352,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
                 self.sdr.readSensors()
  
             sensor = f016thTemperatureSensor(self.sdr)
-        except ValueError:
-            log.error(sensorType + " sensor not found")  
-            self.bmp280 = None
+        except:
+            log.error(sensorType + " sensor not found")
             sensor = None
         return sensor
 
@@ -378,10 +378,10 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         sensor = create(sensorType)
         return sensor
 
-    def BuildBSHT3xAHumiditySensor(self, sensorType, i2c):
+    def BuildBSHT3xAHumiditySensor(self, sensorType):
         try: 
             if self.BSHT30A == None :
-                self.BSHT30A = adafruit_sht31d.SHT31D(i2c) 
+                self.BSHT30A = adafruit_sht31d.SHT31D(self.i2c) 
             sensor = bsht30HumiditySensor(self.BSHT30A)
         # ealier version of circuit python uses this,
         #except AM2320DeviceNotFound :
@@ -391,12 +391,12 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
-    def BuildAM23xxHumiditySensor(self, sensorType, i2c):
+    def BuildAM23xxHumiditySensor(self, sensorType):
         # ealier version of circuit python uses this,
         # from adafruit_am2320 import AM2320DeviceNotFound
         try: 
             if self.am2315 == None :      
-                self.am2315 = adafruit_am2320.AM2320(i2c) 
+                self.am2315 = adafruit_am2320.AM2320(self.i2c) 
             sensor = am2320HumiditySensor(self.am2315)
         # ealier version of circuit python uses this,
         #except AM2320DeviceNotFound :
@@ -404,9 +404,33 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             log.error(sensorType + " not found continue as None")            
             self.am2315 = None
             sensor = None
+        return sensor
+
+    def BuildFT020THumiditySensor(self, sensorType):
+        try:
+            if self.sdr == None :                
+                self.sdr = softwareDefinedRadio()
+                self.sdr.readSensors()
+ 
+            sensor = ft020tHumiditySensor(self.sdr)
+        except:
+            log.error(sensorType + " sensor not found")
+            sensor = None
+        return sensor
+
+    def BuildF016THHumiditySensor(self, sensorType):
+        try:
+            if self.sdr == None :                
+                self.sdr = softwareDefinedRadio()
+                self.sdr.readSensors()
+ 
+            sensor = f016thHumiditySensor(self.sdr)
+        except:
+            log.error(sensorType + " sensor not found")
+            sensor = None
         return sensor    
 
-    def BuildHumiditySensor(self, sensorType, i2c):
+    def BuildHumiditySensor(self, sensorType):
         if sensorType == "None": 
             return noneSensor()
 
@@ -418,10 +442,12 @@ class WeatherPi(weewx.drivers.AbstractDevice):
 
         switcher = {
             HumiditySensors.BSHT30A: self.BuildBSHT3xAHumiditySensor, 
-            HumiditySensors.AM2315: self.BuildAM23xxHumiditySensor                      
+            HumiditySensors.AM2315: self.BuildAM23xxHumiditySensor,
+            HumiditySensors.FT020T: self.BuildFT020THumiditySensor,
+            HumiditySensors.F016TH: self.BuildF016THHumiditySensor                      
         }
         create = switcher.get(sensor)
-        sensor = create(sensorType, i2c)
+        sensor = create(sensorType)
         return sensor
 
     def BuildBMP280AltitdueSensor(self, sensorType, i2c):
@@ -677,7 +703,52 @@ class bsht30HumiditySensor(object):
         except OSError as e:
             log.error("Could not read bsht30 sensor %s", e)
             pass
-        return humidity  
+        return humidity
+
+class ft020tHumiditySensor(object):
+    """Read humidity from ft020t weather sensor.  Note: this
+    device is wireless and hardware control is via the switchdoc
+    labs driver for the RTL433 using a compatble software define
+    radio.""" 
+
+    def __init__(self, sdr):
+        self._sdr = sdr
+
+    def value_at(self, time_ts):
+        humidity = None
+        try:
+            humidity = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["humidity"]
+
+            
+            if (humidity > 100.0):
+                humidity = None # error skip sample
+            
+        except:
+            log.error("Could not read ft020t sensor %s")
+            pass
+        return humidity
+
+class f016thHumiditySensor(object):
+    """Read humidity from inside wireless sensor.  Note: this
+    device is wireless and hardware control is via the switchdoc
+    labs driver for the RTL433 using a compatble software define
+    radio.""" 
+
+    def __init__(self, sdr):
+        self._sdr = sdr
+
+    def value_at(self, time_ts):
+        humidity = None
+        try:
+            humidity = self._sdr.LastKnownSensorInfo["SwitchDoc Labs F016TH Thermo-Hygrometer"]["humidity"]
+            
+            if (humidity > 100.0):
+                humidity = None # error skip sample
+        except:
+            log.error("Could not read f016th sensor %s")
+            pass
+        return humidity
+  
 
 class bmp280TemperatureSensor(object):
     """Read temperature from bmp280 weather sensor.  Note: this
@@ -745,7 +816,7 @@ class f016thTemperatureSensor(object):
             # convert to Celcius
             temperature = round(((temperature - 32.0)/(9.0/5.0)),2)
         except:
-            log.error("Could not read ft020t sensor %s")
+            log.error("Could not read f016th sensor %s")
             pass
         return temperature
 
