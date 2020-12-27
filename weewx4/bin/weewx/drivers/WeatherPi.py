@@ -90,7 +90,7 @@ class RainSensors(Enum):
     SparkFun08942 = 1
     SparkFun15901 = 2
     WeatherRack0015WRDSBT = 3
-
+    FT020T = 4 # switchdoc wireless weather station
 
 def loader(config_dict, engine):
 
@@ -605,6 +605,15 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
+    def BuildFT020TRainSensor(self, sensorType, ioPin):
+        # pin not used on this sensor.
+        try:            
+            sensor = ft020tRainSensor(self.sdr)
+        except:
+            log.error("%s sensor not found", sensorType) 
+            sensor = None
+        return sensor
+
 
     def BuildRainSensor(self, sensorType, ioPin):
         if sensorType == "None": 
@@ -619,8 +628,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         switcher = {
             RainSensors.SparkFun08942: self.BuildSparkFun08942RainSensor,
             RainSensors.SparkFun15901: self.BuildSparkFun08942RainSensor,
-            RainSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942RainSensor
-
+            RainSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942RainSensor,
+            RainSensors.FT020T: self.BuildFT020TRainSensor
         }
         create = switcher.get(sensor)
         sensor = create(sensorType, ioPin)
@@ -1094,6 +1103,36 @@ class sen08942RainSensor(object):
         sen08942RainSensor._rainTick = 0.0
         rainAmount = rainTicks * 0.02794 # 1 tick = 0.2794 mm or 0.02794
         return rainAmount
+
+class ft020tRainSensor(object):
+    """Read rain amount from ft020t weather sensor.  Note: this
+    device is wireless and hardware control is via the switchdoc
+    labs driver for the RTL433 using a compatble software define
+    radio.""" 
+
+    def __init__(self, sdr):
+        self._sdr = sdr
+        self._lastRain = None
+
+    def value_at(self, time_ts):
+        totalRain = None
+        rainDelta = None
+        try:
+            # this device is cumulative rain whereas weewx
+            # reports rain since last measurement.  Here we
+            # get the delta since last measurement. The
+            # weewx helper function handles first rain measurent
+            # and other error conditions properly so I used
+            # that function.
+            totalRain = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["cumulativerain"]    
+            totalRain = round(totalRain / 100.0, 2) # return cm 
+
+            rainDelta = weewx.wxformulas.calculate_rain(totalRain, self._lastRain)
+            self._lastRain = totalRain
+        except:
+            log.error("Could not read ft020t sensor %s")
+            pass
+        return rainDelta
 
 class sen08942VaneSensor(object):
     """Perform a wind diection measurement using the sen08942 Anemometer.
