@@ -15,6 +15,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 from enum import Enum
 import math
+import sys
+import json
 import random
 import time
 import subprocess
@@ -51,6 +53,8 @@ class TemperatureSensors(Enum):
     BMP280 = 1
     AM2315 = 2
     BSHT30A = 3
+    FT020T = 4 # switchdoc wireless weather station
+    F016TH = 5 # switchdoc wireless Thermo-Hygrometer
 
 # The following emumertations define what hardware is supported
 # a string with the same name should appear next the entry in the
@@ -206,6 +210,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         self.bmp280 = None
         self.adc = None
         self.chan = None
+        self.sdr = None
 
         # Using the RPi.GPIO library for pin access in python gere
         # Set GPIO pins to use BCM pin numbers.
@@ -224,8 +229,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             
 
         self.observations = {
-            'outTemp'    : self.BuildTemperatureSensor(deviceList.get('outTemp', "None").strip(), self.i2c),
-            'inTemp'     : self.BuildTemperatureSensor(deviceList.get('inTemp', "None").strip(), self.i2c),
+            'outTemp'    : self.BuildTemperatureSensor(deviceList.get('outTemp', "None").strip()),
+            'inTemp'     : self.BuildTemperatureSensor(deviceList.get('inTemp', "None").strip()),
             'altimeter'  : self.BuildAltitudeSensor(deviceList.get('altimeter', "None").strip(), self.i2c),
             'barometer'  : self.BuildBarometerSensor(deviceList.get('barometer', "None").strip(), self.i2c),
             'pressure'   : noneSensor(),
@@ -287,10 +292,10 @@ class WeatherPi(weewx.drivers.AbstractDevice):
     def getTime(self):
         return self.the_time
 
-    def BuildBSHT3xATemperatureSensor(self, sensorType, i2c):
+    def BuildBSHT3xATemperatureSensor(self, sensorType):
         try:       
             if self.BSHT30A == None :
-                self.BSHT30A = adafruit_sht31d.SHT31D(i2c)
+                self.BSHT30A = adafruit_sht31d.SHT31D(self.i2c)
             sensor = bsht30TemperatureSensor(self.BSHT30A)
         # ealier version of circuit python uses this,
         #except AM2320DeviceNotFound :
@@ -300,12 +305,12 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
-    def BuildAM23xxTemperatureSensor(self, sensorType, i2c):
+    def BuildAM23xxTemperatureSensor(self, sensorType):
         # ealier version of circuit python uses this,
         # from adafruit_am2320 import AM2320DeviceNotFound
         try: 
             if self.am2315 == None :
-                self.am2315 = adafruit_am2320.AM2320(i2c) 
+                self.am2315 = adafruit_am2320.AM2320(self.i2c) 
             sensor = am2320TemperatureSensor(self.am2315)
         # ealier version of circuit python uses this,
         #except AM2320DeviceNotFound :
@@ -315,7 +320,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
-    def BuildBMPx80TemperatureSensor(self, sensorType, i2c):
+    def BuildBMPx80TemperatureSensor(self, sensorType):
         try:
             if self.bmp280 == None :
                 self.bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(self.i2c)
@@ -326,7 +331,33 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
-    def BuildTemperatureSensor(self, sensorType, i2c):
+    def BuildFT020TTemperatureSensor(self, sensorType):
+        try:
+            if self.sdr == None :                
+                self.sdr = softwareDefinedRadio()
+                self.sdr.readSensors()
+ 
+            sensor = ft020tTemperatureSensor(self.sdr)
+        except ValueError:
+            log.error(sensorType + " sensor not found")  
+            self.bmp280 = None
+            sensor = None
+        return sensor
+
+    def BuildF016THTemperatureSensor(self, sensorType):
+        try:
+            if self.sdr == None :                
+                self.sdr = softwareDefinedRadio()
+                self.sdr.readSensors()
+ 
+            sensor = f016thTemperatureSensor(self.sdr)
+        except ValueError:
+            log.error(sensorType + " sensor not found")  
+            self.bmp280 = None
+            sensor = None
+        return sensor
+
+    def BuildTemperatureSensor(self, sensorType):
         if sensorType == "None": 
             return noneSensor()
 
@@ -339,10 +370,12 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         switcher = {
             TemperatureSensors.BSHT30A: self.BuildBSHT3xATemperatureSensor, 
             TemperatureSensors.AM2315: self.BuildAM23xxTemperatureSensor,
-            TemperatureSensors.BMP280: self.BuildBMPx80TemperatureSensor                      
+            TemperatureSensors.BMP280: self.BuildBMPx80TemperatureSensor,
+            TemperatureSensors.FT020T: self.BuildFT020TTemperatureSensor,
+            TemperatureSensors.F016TH: self.BuildF016THTemperatureSensor
         }
         create = switcher.get(sensor)
-        sensor = create(sensorType, i2c)
+        sensor = create(sensorType)
         return sensor
 
     def BuildBSHT3xAHumiditySensor(self, sensorType, i2c):
@@ -380,7 +413,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         try:
             sensor = HumiditySensors[sensorType]
         except KeyError:
-            log.error("Invalid temperature sensor: %s", sensorType)      
+            log.error("Invalid humidity sensor: %s", sensorType)      
             return None
 
         switcher = {
@@ -666,6 +699,163 @@ class bmp280TemperatureSensor(object):
             log.error("Could not read bmp280 sensor %s", e)
             pass
         return temperature
+
+class ft020tTemperatureSensor(object):
+    """Read temperature from ft020t weather sensor.  Note: this
+    device is wireless and hardware control is via the switchdoc
+    labs driver for the RTL433 using a compatble software define
+    radio.""" 
+
+    def __init__(self, sdr):
+        self._sdr = sdr
+
+    def value_at(self, time_ts):
+        temperature = None
+        try:
+            temperature = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["temperature"]
+
+            temperature = (temperature - 400) / 10.0
+            if (temperature > 140.0):
+                temperature = None # error skip sample
+
+            # convert to Celcius
+            temperature = round(((temperature - 32.0)/(9.0/5.0)),2)
+        except:
+            log.error("Could not read ft020t sensor %s")
+            pass
+        return temperature
+
+class f016thTemperatureSensor(object):
+    """Read temperature from inside wireless sensor.  Note: this
+    device is wireless and hardware control is via the switchdoc
+    labs driver for the RTL433 using a compatble software define
+    radio.""" 
+
+    def __init__(self, sdr):
+        self._sdr = sdr
+
+    def value_at(self, time_ts):
+        temperature = None
+        try:
+            temperature = self._sdr.LastKnownSensorInfo["SwitchDoc Labs F016TH Thermo-Hygrometer"]["temperature_F"]
+            
+            if (temperature > 140.0):
+                temperature = None # error skip sample
+
+            # convert to Celcius
+            temperature = round(((temperature - 32.0)/(9.0/5.0)),2)
+        except:
+            log.error("Could not read ft020t sensor %s")
+            pass
+        return temperature
+
+class softwareDefinedRadio(object):
+    """Read the sensors from a wireless 433 MHz device.  This
+    currently supports the switchdoc 433 MHz radio driver and
+    chipsets recomended by switch doc labs.  It runs the
+    external process for reading the radio provided by those
+    drivers.""" 
+
+    def __init__(self):        
+        self.cmd = [ '/usr/local/bin/rtl_433', '-q', '-F', 'json', '-R', '146', '-R', '147']
+        self._pulse = 0
+        self._lastTimeSensorReceived = 0
+        self._timeSinceLastSample = 0
+        self.LastKnownSensorInfo = {}
+        self._p = None
+        self._q = None
+        self._t = None
+
+    def enqueueOutput(self, src, out, queue):
+        try:
+            for line in iter(out.readline, b''):
+                queue.put((src, line))
+            out.close()
+        except:
+            pass 
+
+    def readSensors(self):
+        from subprocess import PIPE, Popen, STDOUT
+        from threading  import Thread
+        from queue import Queue, Empty
+        ON_POSIX = 'posix' in sys.builtin_module_names
+
+        log.debug("")
+        log.debug("######")
+        #   Create our sub-process...
+        #   Note that we need to either ignore output from STDERR or merge it with STDOUT due to a limitation/bug somewhere under the covers of "subprocess"
+        #   > this took awhile to figure out a reliable approach for handling it...
+
+        self._p = Popen(self.cmd, stdout=PIPE, stderr=STDOUT, bufsize=1, close_fds=ON_POSIX)
+        self._q = Queue()
+
+        self._t = Thread(target=self.enqueueOutput, args=('stdout', self._p.stdout, self._q))
+    
+        self._t.daemon = True # thread dies with the program
+        self._t.start()
+
+        self._pulse = 0
+        log.debug("starting 433MHz scanning")
+        log.debug("######")
+        self._lastTimeSensorReceived = time.time()
+
+        t2 = Thread(target=self.dequeueOutput, args=())
+        t2.daemon = True # thread dies with the program
+        t2.start()
+
+    def dequeueOutput(self):
+        from subprocess import PIPE, Popen, STDOUT
+        from threading  import Thread
+        from queue import Queue, Empty
+        ON_POSIX = 'posix' in sys.builtin_module_names
+
+        while True:
+
+            #   Other processing can occur here as needed...
+            #sys.stdout.write('Made it to processing step. \n')
+            self._timeSinceLastSample = time.time() - self._lastTimeSensorReceived
+
+            if (self._timeSinceLastSample > 720.0):   # restart if no reads in 12 minutes
+                log.debug(">>>>>>>>>>>>>>restarting SDR thread.....")
+                self._lastTimeSensorReceived = time.time()
+                
+                log.debug("Killing SDR Thread")
+                self._p.kill()
+                self._t.join()
+
+                log.debug("starting SDR Thread again")
+                log.debug("")
+                log.debug("######")
+                log.debug("Read Wireless Sensors")
+                log.debug("######")
+
+                self._p = Popen(self._cmd, stdout=PIPE, stderr=STDOUT, bufsize=1, close_fds=ON_POSIX)
+                self._q = Queue()
+
+                self._t = Thread(target=self.enqueueOutput, args=('stdout', self._p.stdout, self._q))
+    
+                self._t.daemon = True # thread dies with the program
+                self._t.start()
+            
+            try:
+                src, line = self._q.get(timeout = 1)
+                log.debug(line.decode())
+            except Empty:
+                self._pulse += 1
+            else: # got line
+                self._pulse -= 1
+                sLine = line.decode()
+
+                self._lastTimeSensorReceived = time.time()
+
+                try:
+                    jsonLine = json.loads(sLine)
+                except:
+                    # only some of the lines are json
+                    # for now we only care about json lines
+                    continue
+
+                self.LastKnownSensorInfo[jsonLine["model"]] = jsonLine
         
 class bmp280AltitudeSensor(object):
     """Read altitude from bmp280 weather sensor.  Note: this
