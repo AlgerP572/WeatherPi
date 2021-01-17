@@ -75,6 +75,7 @@ class WindSpeedSensors(Enum):
     SparkFun08942 = 1
     SparkFun15901 = 2
     WeatherRack0015WRDSBT = 3
+    FT020T = 4 # switchdoc wireless weather station
 
 class WindDirectionSensors(Enum):
     SparkFun08942 = 1
@@ -85,6 +86,7 @@ class WindGustSensors(Enum):
     SparkFun08942 = 1
     SparkFun15901 = 2
     WeatherRack0015WRDSBT = 3
+    FT020T = 4 # switchdoc wireless weather station
 
 class RainSensors(Enum):
     SparkFun08942 = 1
@@ -516,6 +518,15 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
+    def BuildFT020TWindSpeedSensor(self, sensorType, ioPin):
+        # io pin is not used for this sensor.
+        try:            
+            sensor = ft020tAnemometer(self.sdr)
+        except:
+            log.error("%s sensor not found", sensorType) 
+            sensor = None
+        return sensor
+
 
     def BuildWindSpeedSensor(self, sensorType, ioPin):
         if sensorType == "None": 
@@ -530,7 +541,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         switcher = {
             WindSpeedSensors.SparkFun08942: self.BuildSparkFun08942WindSpeedSensor,
             WindSpeedSensors.SparkFun15901: self.BuildSparkFun08942WindSpeedSensor,
-            WindSpeedSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindSpeedSensor
+            WindSpeedSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindSpeedSensor,
+            WindSpeedSensors.FT020T: self.BuildFT020TWindSpeedSensor
         }
         create = switcher.get(sensor)
         sensor = create(sensorType, ioPin)
@@ -578,6 +590,15 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
+    def BuildFT020TWindGustSensor(self, sensorType, ioPin):
+        # ioPin is not used for this sensor
+        try:            
+            sensor = ft020tGustAnemometer(self.sdr)
+        except ValueError:
+            log.error(sensorType + " sensor not found") 
+            sensor = None
+        return sensor
+
     def BuildWindGustSensor(self, sensorType, ioPin):
         if sensorType == "None": 
             return noneSensor()
@@ -591,7 +612,8 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         switcher = {
             WindGustSensors.SparkFun08942: self.BuildSparkFun08942WindGustSensor,
             WindGustSensors.SparkFun15901: self.BuildSparkFun08942WindGustSensor,
-            WindGustSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindGustSensor
+            WindGustSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindGustSensor,
+            WindGustSensors.FT020T: self.BuildFT020TWindGustSensor
         }
         create = switcher.get(sensor)
         sensor = create(sensorType, ioPin)
@@ -903,13 +925,18 @@ class softwareDefinedRadio(object):
                 self._p.kill()
                 self._t.join()
 
+                # Wait for 10 seconds: Allow previous
+                # instance proper time to shutdown and
+                # free resources.
+                time.sleep(10)
+
                 log.debug("starting SDR Thread again")
                 log.debug("")
                 log.debug("######")
                 log.debug("Read Wireless Sensors")
                 log.debug("######")
 
-                self._p = Popen(self._cmd, stdout=PIPE, stderr=STDOUT, bufsize=1, close_fds=ON_POSIX)
+                self._p = Popen(self.cmd, stdout=PIPE, stderr=STDOUT, bufsize=1, close_fds=ON_POSIX)
                 self._q = Queue()
 
                 self._t = Thread(target=self.enqueueOutput, args=('stdout', self._p.stdout, self._q))
@@ -1051,6 +1078,25 @@ class sen08942Anemometer(object):
         n = int(round(P * len(N) + 0.5))
         return n - 1
 
+class ft020tAnemometer(object):
+    """Read wind speed from ft020t weather sensor.  Note: this
+    device is wireless and hardware control is via the switchdoc
+    labs driver for the RTL433 using a compatble software defined
+    radio.""" 
+
+    def __init__(self, sdr):
+        self._sdr = sdr
+
+    def value_at(self, time_ts):
+        windSpeed = None
+        try:
+            windSpeed  = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["avewindspeed"]
+            windSpeed = windSpeed / 10.0 # return m/s
+        except:
+            log.error("Could not read ft020t sensor %s")
+            pass
+        return windSpeed
+
 class sen08942GustAnemometer(sen08942Anemometer):
     """Perform a wind speed measurement using the sen08942 Anemometer.
     This is the weather sensor that is shipped as part of the sparkfun
@@ -1067,6 +1113,26 @@ class sen08942GustAnemometer(sen08942Anemometer):
 
         windGustSpeed = (2.4 / windGustRate) # 2.4 km / h = 0.667 meters / second
         return windGustSpeed
+
+class ft020tGustAnemometer(object):
+    """Read wind gust speed from ft020t weather sensor.  Note: this
+    device is wireless and hardware control is via the switchdoc
+    labs driver for the RTL433 using a compatble software defined
+    radio.""" 
+
+    def __init__(self, sdr):
+        self._sdr = sdr
+
+    def value_at(self, time_ts):
+        windGustSpeed = None
+        try:
+            windGustSpeed  = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["gustwindspeed"]
+            windGustSpeed = windGustSpeed / 10.0 # return m/s
+        except:
+            log.error("Could not read ft020t sensor %s")
+            pass
+        return windGustSpeed
+
 
 class sen08942RainSensor(object):
     """Perform a rain measurement using the sen08942 Anemometer.
