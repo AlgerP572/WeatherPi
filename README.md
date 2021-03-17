@@ -43,6 +43,8 @@ The following list describes the hardware that this driver currently supports:
 BMP280
 AM2315
 BSHT30A
+FT020T  # switchdoc wireless weather station
+F016TH  # switchdoc wireless Thermo-Hygrometer
 ```
 
 ## Humidity Sensors
@@ -50,6 +52,8 @@ BSHT30A
 BMP280
 AM2315
 BSHT30A
+FT020T # switchdoc wireless weather station
+F016TH # switchdoc wireless Thermo-Hygrometer
 ```
 
 ## Pressure Sensors
@@ -59,23 +63,26 @@ BMP280
 
 ## Anemometer
 ```
-sen08942 (Sparkfun weather station)
-sen15901 (Sparkfun weather station)
-0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
+sen08942 # Sparkfun weather station
+sen15901 # Sparkfun weather station
+0015-WR-DSBT/SF # WeatherRack Weather SwitchDoc Labs
+FT020T # switchdoc wireless weather station
 ```
 
 ## Wind Vanes
 ```
-sen08942 (Sparkfun weather station)
-sen15901 (Sparkfun weather station)
-0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
+sen08942 # Sparkfun weather station
+sen15901 # Sparkfun weather station
+0015-WR-DSBT/SF # (WeatherRack Weather SwitchDoc Labs
+FT020T # switchdoc wireless weather station
 ```
 
 ## Rain Guage
 ```
-sen08942 (Sparkfun weather station)
-sen15901 (Sparkfun weather station)
-0015-WR-DSBT/SF (WeatherRack Weather SwitchDoc Labs) 
+sen08942 # (Sparkfun weather station)
+sen15901 # Sparkfun weather station)
+0015-WR-DSBT/SF # WeatherRack Weather SwitchDoc Labs)
+FT020T # switchdoc wireless weather station 
 ```
 
 ## Altimeter
