@@ -81,6 +81,7 @@ class WindDirectionSensors(Enum):
     SparkFun08942 = 1
     SparkFun15901 = 2
     WeatherRack0015WRDSBT = 3
+    FT020T = 4 # switchdoc wireless weather station
 
 class WindGustSensors(Enum):
     SparkFun08942 = 1
@@ -548,6 +549,26 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         sensor = create(sensorType, ioPin)
         return sensor
 
+    def BuildWindDirectionSensor(self, sensorType, ioPin):
+        if sensorType == "None": 
+            return noneSensor()
+
+        try:
+            sensor = WindDirectionSensors[sensorType]
+        except KeyError:
+            log.error("Invalid wind direction sensor: %s", sensorType)      
+            return None
+
+        switcher = {
+            WindDirectionSensors.SparkFun08942: self.BuildSparkFun08942WindDirectionSensor,
+            WindDirectionSensors.SparkFun15901: self.BuildSparkFun08942WindDirectionSensor,
+            WindDirectionSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindDirectionSensor,
+            WindDirectionSensors.FT020T: self.BuildFT020TWindDirectionSensor
+        }
+        create = switcher.get(sensor)
+        sensor = create(sensorType, ioPin)
+        return sensor
+
      
     def BuildSparkFun08942WindDirectionSensor(self, sensorType, offsetAngle):
         try:
@@ -562,24 +583,12 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             sensor = None
         return sensor
 
-
-    def BuildWindDirectionSensor(self, sensorType, ioPin):
-        if sensorType == "None": 
-            return noneSensor()
-
-        try:
-            sensor = WindDirectionSensors[sensorType]
-        except KeyError:
-            log.error("Invalid wind direction sensor: %s", sensorType)      
-            return None
-
-        switcher = {
-            WindDirectionSensors.SparkFun08942: self.BuildSparkFun08942WindDirectionSensor,
-            WindDirectionSensors.SparkFun15901: self.BuildSparkFun08942WindDirectionSensor,
-            WindDirectionSensors.WeatherRack0015WRDSBT: self.BuildSparkFun08942WindDirectionSensor
-        }
-        create = switcher.get(sensor)
-        sensor = create(sensorType, ioPin)
+    def BuildFT020TWindDirectionSensor(self, sensorType, offsetAngle):        
+        try:            
+            sensor = ft020tVaneSensor(self.sdr, offsetAngle)
+        except ValueError:
+            log.error(sensorType + " sensor not found") 
+            sensor = None
         return sensor
 
     def BuildSparkFun08942WindGustSensor(self, sensorType, ioPin):
@@ -1190,7 +1199,7 @@ class ft020tRainSensor(object):
             # weewx helper function handles first rain measurent
             # and other error conditions properly so I used
             # that function.
-            totalRain = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["cumulativerain"]    
+            totalRain = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["cumulativerain"]
             totalRain = round(totalRain / 100.0, 2) # return cm 
 
             rainDelta = weewx.wxformulas.calculate_rain(totalRain, self._lastRain)
@@ -1245,7 +1254,31 @@ class sen08942VaneSensor(object):
         if degrees != None :
             calibratedResult = 360.0 + degrees + self.wind_direction_offset_angle
             calibratedResult = calibratedResult % 360
-        return calibratedResult 
+        return calibratedResult
+
+class ft020tVaneSensor(object):
+    """Perform a wind diection measurement using the wireless ft020t Anemometer.
+    This is the weather sensor that is shipped as part of the switch doc wireless
+    weather station.""" 
+
+    def __init__(self, sdr, wind_direction_offset_angle):
+        self._sdr = sdr
+        self.wind_direction_offset_angle = wind_direction_offset_angle
+
+    def value_at(self, time_ts):
+        degrees = None   
+
+        try:     
+            degrees = self._sdr.LastKnownSensorInfo["SwitchDoc Labs FT020T AIO"]["winddirection"]
+        except:
+            log.error("Could not read ft020t sensor %s")
+            pass
+        
+        calibratedResult = None
+        if degrees != None :
+            calibratedResult = 360.0 + degrees + self.wind_direction_offset_angle
+            calibratedResult = calibratedResult % 360
+        return calibratedResult
 
 class noneSensor(object):
     """This class is useful for provideing a None for any obsrvation that
