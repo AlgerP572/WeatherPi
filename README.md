@@ -35,6 +35,7 @@ Special thanks to the Weewx team for fast turn around time on an issue encounter
 - [Prerequisites](#prerequisites)
 - [The Hardware](#the-hardware)
 - [Compiling Weewx](#compiling-weewx)
+- [Alternate Systemd Configuration](#alternate-systemd-configuration)
 
 # Supported Hardware
 The following list describes the hardware that this driver currently supports:
@@ -231,3 +232,66 @@ Compiling Weewx is very straightforwad with visual studio code which is free.  I
 }
 ```
 ![WeatherPi](media/VSCodeWeewx.png)
+
+# Alternate Systemd Configuration
+Below is an alternative systemd configuration for weewx.  I find it a little easier that using the default
+daemon approach.
+
+1) Create a config file for weewx for systemd
+
+```
+sudo nano /etc/systemd/system/weewx.service
+
+```
+
+2) Put the configuration required into the new file
+
+```
+
+[Unit]
+Description=Start weewx
+After=graphical.target
+Requires=network.target
+
+[Service]
+Type=idle
+User=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+ExecStart=lxterminal -e "/usr/bin/python3 /home/weewx4/bin/weewxd"
+Restart=always
+RestartSec=120s
+KillMode=process
+WantedBy=graphical.target
+
+[Install]
+WantedBy=graphical.target
+
+```
+
+3) Save and close file (CTRL+O CTRL+X)
+
+4) Change file permissions
+
+```
+
+sudo chmod 644 /etc/systemd/system/weewx.service
+
+```
+5) Update system control
+
+```
+
+sudo systemctl daemon-reload
+sudo systemctl enable weewx.service
+
+```
+
+6) Reboot
+
+At this point after reboot you should see weewx running on the desktop. And in thoery it will auto restsart
+should any problems arise.
+
+![WeatherPi](media/SystemDReboot.png)
+
+
