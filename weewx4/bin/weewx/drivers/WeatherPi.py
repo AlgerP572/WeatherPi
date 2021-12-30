@@ -1,10 +1,10 @@
 #
-#    Copyright (c) 2020 Alger Pike <Alger_P@pacbell.net>
+#    Copyright (c) 2020-2022 Alger Pike <Alger_P@pacbell.net>
 #
 #    See the file LICENSE.txt for your full rights.   
 #
 #    Based on the Simulator driver from Weewx Simulator.py
-#    Copyright (c) 2009-2020 Tom Keffer <tkeffer@gmail.com>
+#    Copyright (c) 2009-2022 Tom Keffer <tkeffer@gmail.com>
 #
 #    See the file LICENSE.txt for your full rights.
 #
@@ -549,7 +549,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
         sensor = create(sensorType, ioPin)
         return sensor
 
-    def BuildWindDirectionSensor(self, sensorType, ioPin):
+    def BuildWindDirectionSensor(self, sensorType, offsetAngle):
         if sensorType == "None": 
             return noneSensor()
 
@@ -566,7 +566,7 @@ class WeatherPi(weewx.drivers.AbstractDevice):
             WindDirectionSensors.FT020T: self.BuildFT020TWindDirectionSensor
         }
         create = switcher.get(sensor)
-        sensor = create(sensorType, ioPin)
+        sensor = create(sensorType, offsetAngle)
         return sensor
 
      
