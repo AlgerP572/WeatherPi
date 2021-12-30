@@ -13,11 +13,12 @@ Currently this driver is known to work with Weewx 4.x versions:
 
 Weewx version | Branch or Label | Notes
 ------------ | ------------- | -------------
-4.0.0b14 | Weewxb14
-4.0.0b16 | Weewxb16
-4.0.0b17 | Weewxb17 (master) | Some users may also require Weewx changset d077a8b
-4.0.0b18 | Weewxb18 (master) | Weewxb18 includes the above changset (d077a8b).
-4.0.0    | (master)          | First release of Weewx 4.x requires weewx.conf update (see example)
+4.0.0b14 | v4.0.0b16
+4.0.0b16 | v4.0.0b16
+4.0.0b17 | v4.0.0b17 | Some users may also require Weewx changset d077a8b
+4.0.0b18 | v4.0.0b18         | Weewxb18 includes the above changset (d077a8b).
+4.0.0    | V4.1.1            | First release of Weewx 4.x requires weewx.conf update (see example)
+4.5.1    | v4.5.1            | Released version simple copy over to upgrade (updates databases to V4).
 
 ---
 **NOTE**
