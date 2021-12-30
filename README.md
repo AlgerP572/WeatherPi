@@ -235,7 +235,7 @@ Compiling Weewx is very straightforwad with visual studio code which is free.  I
 
 # Alternate Systemd Configuration
 Below is an alternative systemd configuration for weewx.  I find it a little easier that using the default
-daemon approach.
+daemon approach. This version will create a process that is visibly running weewx in a desktop terminal.
 
 1) Create a config file for weewx for systemd
 
