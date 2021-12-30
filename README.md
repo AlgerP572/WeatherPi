@@ -131,9 +131,9 @@ If you have issues installing this driver via the weewx script it can alternativ
           
 3) Update the observations entry for weatherPi in the weewx.conf file.  This entry consists of a string containing the observation
 that the software should monitor and poll.  Each entnty starts with the name of the weewx observation follwed by a colon followed
-by the name of the hardware the softwre should use for the polling operation.  Below is an exmple.  There are two ways to not monitor
+by the name of the hardware the WeeWX software should use for the polling operation.  Below is an example.  There are two ways to not monitor
 observations, a) specify None for that observation type or b) do not include the observation type in the list.  By default an observation
-no included uses None hardware driver. (Currently configobj and weewx only support a single line entry)
+not included uses None hardware driver for that observation. (Currently configobj and weewx only support a single line entry)
 
 ```
 observations = outTemp: AM2315, inTemp: BMP280, inHumidity: None, altimeter: BMP280, barometer: BMP280, windSpeed: SparkFun08942, windDir: SparkFun08942, windGust: SparkFun08942, outHumidity: AM2315, rain: SparkFun08942
